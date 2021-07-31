@@ -126,17 +126,19 @@ class PathTest {
         final var tree = new HashMap<String, Object>();
         tree.put("A", VALUE);
 
-        Path.of("A/B").set(tree, VALUE);
+        final var modified = Path.of("A/B").set(tree, VALUE);
 
+        assertThat(modified).isTrue();
         assertThat(tree).isEqualTo(Map.of("A", Map.of("B", VALUE)));
     }
 
     @Test
     void ignores_clearNonExistingPath() {
-        // Would throw if modified
         final var tree = Map.of("A", VALUE);
 
-        Path.of("A/B/C").set(tree, null);
+        final var modified = Path.of("A/B/C").set(tree, null);
+
+        assertThat(modified).isFalse();
     }
 
     @Test
@@ -144,7 +146,9 @@ class PathTest {
         // Would throw if modified
         final var tree = Map.<String, Object>of();
 
-        Path.of("A").set(tree, null);
+        final var modified = Path.of("A").set(tree, null);
+
+        assertThat(modified).isFalse();
     }
 
     @Test

@@ -7,7 +7,7 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 class ObjectBoardTest {
-    private static final String PATH = "A";
+    private static final Path PATH = Path.of("A");
     private static final int VALUE = 42;
 
     private final ObjectBoard board = new ObjectBoard();
@@ -37,7 +37,7 @@ class ObjectBoardTest {
         void synchronizesOnSubscribe() {
             board.unsubscribe(listener);
             board.set(PATH, VALUE);
-            board.set("other", "Other value");
+            board.set(Path.of("other"), "Other value");
 
             board.subscribe(PATH, listener);
 
@@ -57,7 +57,7 @@ class ObjectBoardTest {
 
         @Test
         void unsubscribesAllSubscriptionsForListener() {
-            final var subscription = board.subscribe("", listener);
+            final var subscription = board.subscribe(Path.of(""), listener);
 
             board.unsubscribe(listener);
 

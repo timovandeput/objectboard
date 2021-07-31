@@ -87,11 +87,11 @@ public final class Path {
         return Set.of();
     }
 
-    public void set(Map<String, Object> map, @Nullable Object value) {
-        set(segments, map, value);
+    public boolean set(Map<String, Object> map, @Nullable Object value) {
+        return set(segments, map, value);
     }
 
-    private void set(List<String> segments, Map<String, Object> map, @Nullable Object value) {
+    private boolean set(List<String> segments, Map<String, Object> map, @Nullable Object value) {
         if (segments.isEmpty()) {
             throw new ObjectBoardException("Cannot update an empty path");
         }
@@ -100,18 +100,19 @@ public final class Path {
             var target = map.get(key);
             if (!(target instanceof Map)) {
                 if (value == null) {
-                    return;
+                    return false;
                 }
                 target = new HashMap<>();
                 map.put(key, target);
             }
             //noinspection unchecked
-            set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
-            return;
+            return set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
         }
-        if (value != null || map.containsKey(key)) {
-            map.put(key, value);
+        if (value == null && !map.containsKey(key)) {
+            return false;
         }
+        map.put(key, value);
+        return true;
     }
 
     @Override

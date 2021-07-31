@@ -1,26 +1,25 @@
 package nl.software101.objectboard;
 
 import java.io.Closeable;
-import java.io.IOException;
 
 /**
  * Subscription handle to board model changes.
  */
 public class BoardSubscription implements Closeable {
     private final ObjectBoard board;
-    private final String path;
+    private final Path path;
 
-    BoardSubscription(ObjectBoard board, String path) {
+    BoardSubscription(ObjectBoard board, Path path) {
         this.board = board;
         this.path = path;
     }
 
-    boolean matches(String path) {
-        return path.startsWith(this.path);
+    boolean matches(Path path) {
+        return this.path.matches(path);
     }
 
     @Override
-    public void close() throws IOException {
+    public void close() {
         board.unsubscribe(this);
     }
 }

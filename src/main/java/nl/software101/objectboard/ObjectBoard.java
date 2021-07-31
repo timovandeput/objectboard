@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
  */
 public class ObjectBoard {
     private final Node model = new Node();
+    private final Map<String, Object> tree = new HashMap<>();
     private final Map<BoardSubscription, BoardListener> listeners = new HashMap<>();
 
     /**
@@ -25,12 +26,12 @@ public class ObjectBoard {
      * @param path  location to update
      * @param value new value
      */
-    public synchronized void set(String path, Object value) {
-        model.set(path, value);
+    public synchronized void set(Path path, Object value) {
+        model.set(path.toString(), value);
         forMatching(path, listener -> listener.onSet(path, value));
     }
 
-    private void forMatching(String path, Consumer<BoardListener> subscription) {
+    private void forMatching(Path path, Consumer<BoardListener> subscription) {
         listeners.entrySet().stream()
                 .filter(e -> e.getKey().matches(path))
                 .map(Map.Entry::getValue)
@@ -44,8 +45,8 @@ public class ObjectBoard {
      *
      * @param path location to clear
      */
-    public synchronized void unset(String path) {
-        model.unset(path).ifPresent(value ->
+    public synchronized void unset(Path path) {
+        model.unset(path.toString()).ifPresent(value ->
                 forMatching(path, listener -> listener.onUnset(path, value))
         );
     }
@@ -58,10 +59,10 @@ public class ObjectBoard {
      * @param listener callback interface for notifications
      * @return subscription
      */
-    synchronized BoardSubscription subscribe(String path, BoardListener listener) {
+    synchronized BoardSubscription subscribe(Path path, BoardListener listener) {
         final var subscription = new BoardSubscription(this, path);
         listeners.put(subscription, listener);
-        model.field(path).ifPresent(value -> listener.onSet(path, value));
+        model.field(path.toString()).ifPresent(value -> listener.onSet(path, value));
         return subscription;
     }
 
