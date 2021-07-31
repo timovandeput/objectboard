@@ -3,9 +3,11 @@ package nl.software101.objectboard;
 import nl.jqno.equalsverifier.EqualsVerifier;
 import org.junit.jupiter.api.Test;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PathTest {
     private static final int VALUE = 42;
@@ -97,6 +99,36 @@ class PathTest {
         assertThat(Path.of("A/**/B").in(tree)).containsExactly(VALUE);
         assertThat(Path.of("A/**/**/B").in(tree)).containsExactly(VALUE);
         assertThat(Path.of("B/**").in(tree)).containsExactly(VALUE);
+    }
+
+    @Test
+    void throws_addWithoutPath() {
+        assertThatThrownBy(() -> Path.of("").set(Map.of(), VALUE))
+                .isInstanceOf(ObjectBoardException.class)
+                .hasMessageContaining("empty path");
+    }
+
+    @Test
+    void addsValueToExistingTree() {
+        //noinspection MismatchedQueryAndUpdateOfCollection
+        final var subtree = new HashMap<>();
+        final var tree = new HashMap<String, Object>();
+        tree.put("A", subtree);
+
+        Path.of("A/B").set(tree, VALUE);
+
+        assertThat(tree.get("A")).isSameAs(subtree);
+        assertThat(subtree.get("B")).isEqualTo(VALUE);
+    }
+
+    @Test
+    void createsNewTreeNode() {
+        final var tree = new HashMap<String, Object>();
+        tree.put("A", VALUE);
+
+        Path.of("A/B").set(tree, VALUE);
+
+        assertThat(tree).isEqualTo(Map.of("A", Map.of("B", VALUE)));
     }
 
     @Test

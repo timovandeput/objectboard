@@ -1,5 +1,6 @@
 package nl.software101.objectboard;
 
+import javax.annotation.Nullable;
 import java.util.*;
 
 /**
@@ -86,6 +87,24 @@ public final class Path {
         return Set.of();
     }
 
+    public void set(Map<String, Object> map, @Nullable Object value) {
+        set(segments, map, value);
+    }
+
+    private void set(List<String> segments, Map<String, Object> map, @Nullable Object value) {
+        if (segments.isEmpty()) {
+            throw new ObjectBoardException("Cannot update an empty path");
+        }
+        final var key = segments.get(0);
+        if (segments.size() > 1) {
+            final var target = map.compute(key, (k, v) -> v instanceof Map ? v : new HashMap<>());
+            //noinspection unchecked
+            set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
+            return;
+        }
+        map.put(key, value);
+    }
+
     @Override
     public int hashCode() {
         return Objects.hash(segments);
@@ -103,5 +122,4 @@ public final class Path {
     public String toString() {
         return String.join("/", segments);
     }
-
 }
