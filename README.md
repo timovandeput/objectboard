@@ -1,5 +1,7 @@
 # Object Board
 
 Object Board is a lightweight implementation of
-the ["blackboard" design pattern](https://en.wikipedia.org/wiki/Blackboard_(design_pattern))" 
-in Java.
+the ["blackboard" design pattern](https://en.wikipedia.org/wiki/Blackboard_(design_pattern)) 
+in Java, storing a hierarchical tree of objects.
+
+
