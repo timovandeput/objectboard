@@ -57,13 +57,11 @@ public class ObjectBoard {
      *
      * @param path     root location to subscribe
      * @param listener callback interface for notifications
-     * @return subscription
      */
-    synchronized BoardSubscription subscribe(Path path, BoardListener listener) {
-        final var subscription = new BoardSubscription(this, path);
+    public synchronized void subscribe(Path path, BoardListener listener) {
+        final var subscription = new BoardSubscription(path);
         listeners.put(subscription, listener);
         path.in(model).forEach(value -> listener.onSet(path, value));
-        return subscription;
     }
 
     /**
@@ -76,15 +74,18 @@ public class ObjectBoard {
                 .filter(e -> e.getValue() == listener)
                 .map(Map.Entry::getKey)
                 .collect(Collectors.toList());
-        remove.forEach(this::unsubscribe);
+        remove.forEach(listeners::remove);
     }
 
-    /**
-     * Unsubscribes a single path.
-     *
-     * @param subscription handle that was created during subscription.
-     */
-    synchronized void unsubscribe(BoardSubscription subscription) {
-        listeners.remove(subscription);
+    private static class BoardSubscription {
+        private final Path path;
+
+        BoardSubscription(Path path) {
+            this.path = path;
+        }
+
+        boolean matches(Path path) {
+            return this.path.matches(path);
+        }
     }
 }

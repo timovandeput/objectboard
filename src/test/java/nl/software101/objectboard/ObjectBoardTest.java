@@ -1,5 +1,6 @@
 package nl.software101.objectboard;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -15,7 +16,11 @@ class ObjectBoardTest {
     @Nested
     class Notifications {
         private final BoardListener listener = mock(BoardListener.class);
-        private final BoardSubscription subscription = board.subscribe(PATH, listener);
+
+        @BeforeEach
+        void setUp() {
+            board.subscribe(PATH, listener);
+        }
 
         @Test
         void notifiesBoardChanges() {
@@ -54,8 +59,8 @@ class ObjectBoardTest {
         }
 
         @Test
-        void unsubscribes() throws Exception {
-            subscription.close();
+        void unsubscribes() {
+            board.unsubscribe(listener);
 
             board.set(PATH, VALUE);
             board.unset(PATH);
@@ -65,7 +70,8 @@ class ObjectBoardTest {
 
         @Test
         void unsubscribesAllSubscriptionsForListener() {
-            final var subscription = board.subscribe(Path.of(""), listener);
+            board.subscribe(Path.of("**"), listener);
+            Mockito.reset(listener);
 
             board.unsubscribe(listener);
 
