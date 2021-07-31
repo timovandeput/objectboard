@@ -8,15 +8,12 @@ import java.util.stream.Collectors;
 /**
  * Implementation of the "blackboard" design pattern.
  * <p>
- * Values are stored in a network of {@link Node} objects that can be updated using a path down the nodes by providing
- * a period-separated (".") hierarchical path.
- * Subscribers are automatically notified about changes in the tree.
+ * Values are stored in-memory in a hierarchy of named nodes. Clients receive notifications on modification of values.
  *
  * @see <a href="https://en.wikipedia.org/wiki/Blackboard_(design_pattern)">Blackboard design pattern</a>
  */
 public class ObjectBoard {
-    private final Node model = new Node();
-    private final Map<String, Object> tree = new HashMap<>();
+    private final Map<String, Object> model = new HashMap<>();
     private final Map<BoardSubscription, BoardListener> listeners = new HashMap<>();
 
     /**
@@ -27,7 +24,7 @@ public class ObjectBoard {
      * @param value new value
      */
     public synchronized void set(Path path, Object value) {
-        model.set(path.toString(), value);
+        path.set(model, value);
         forMatching(path, listener -> listener.onSet(path, value));
     }
 
@@ -46,9 +43,10 @@ public class ObjectBoard {
      * @param path location to clear
      */
     public synchronized void unset(Path path) {
-        model.unset(path.toString()).ifPresent(value ->
-                forMatching(path, listener -> listener.onUnset(path, value))
-        );
+        final var modified = path.set(model, null);
+        if (modified) {
+            forMatching(path, listener -> listener.onUnset(path));
+        }
     }
 
     /**
@@ -62,7 +60,7 @@ public class ObjectBoard {
     synchronized BoardSubscription subscribe(Path path, BoardListener listener) {
         final var subscription = new BoardSubscription(this, path);
         listeners.put(subscription, listener);
-        model.field(path.toString()).ifPresent(value -> listener.onSet(path, value));
+        path.in(model).forEach(value -> listener.onSet(path, value));
         return subscription;
     }
 

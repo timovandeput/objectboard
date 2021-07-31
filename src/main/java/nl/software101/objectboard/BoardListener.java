@@ -15,8 +15,7 @@ public interface BoardListener {
     /**
      * Notifies a value has been cleared.
      *
-     * @param path  path of the value
-     * @param value the prior value
+     * @param path path of the value
      */
-    void onUnset(Path path, Object value);
+    void onUnset(Path path);
 }

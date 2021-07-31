@@ -23,14 +23,14 @@ class ObjectBoardTest {
             board.unset(PATH);
 
             verify(listener).onSet(PATH, VALUE);
-            verify(listener).onUnset(PATH, VALUE);
+            verify(listener).onUnset(PATH);
         }
 
         @Test
         void ignoresIfNothingChanged() {
             board.unset(PATH);
 
-            verify(listener, never()).onUnset(any(), any());
+            verify(listener, never()).onUnset(any());
         }
 
         @Test
@@ -52,7 +52,7 @@ class ObjectBoardTest {
             board.set(PATH, VALUE);
             board.unset(PATH);
             verify(listener, never()).onSet(any(), any());
-            verify(listener, never()).onUnset(any(), any());
+            verify(listener, never()).onUnset(any());
         }
 
         @Test
@@ -91,7 +91,7 @@ class ObjectBoardTest {
             thread1.join();
             thread2.join();
             inOrder.verify(listener).onSet(PATH, VALUE);
-            inOrder.verify(listener).onUnset(PATH, VALUE);
+            inOrder.verify(listener).onUnset(PATH);
         }
     }
 }
