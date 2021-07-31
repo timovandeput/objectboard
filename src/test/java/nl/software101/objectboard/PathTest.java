@@ -39,6 +39,15 @@ class PathTest {
     }
 
     @Test
+    void matchesWildcardSubPath() {
+        assertThat(Path.of("A/*").matches(Path.of("A/B"))).isTrue();
+        assertThat(Path.of("A/*").matches(Path.of("A/B/C"))).isFalse();
+        assertThat(Path.of("A/*/C").matches(Path.of("A/B/C"))).isTrue();
+        assertThat(Path.of("A/*/C").matches(Path.of("A/C"))).isFalse();
+        assertThat(Path.of("A/*/C").matches(Path.of("A/B/B/C"))).isFalse();
+    }
+
+    @Test
     void findsValue() {
         assertThat(new Path().in(VALUE)).contains(VALUE);
     }
@@ -50,6 +59,17 @@ class PathTest {
         assertThat(Path.of("A/C").in(tree)).isEmpty();
         assertThat(Path.of("").in(tree)).contains(tree);
         assertThat(Path.of("A/B").in(tree)).contains(VALUE);
+    }
+
+    @Test
+    void findsWildcardPathsInTree() {
+        final Map<?, ?> subtree = Map.of("X", "Nope", "C", VALUE);
+        final Object tree = Map.of("A", subtree, "B", VALUE);
+
+        assertThat(Path.of("*").in(tree)).containsExactly(subtree, VALUE);
+        assertThat(Path.of("*/C").in(tree)).contains(VALUE);
+        assertThat(Path.of("*/Z").in(tree)).isEmpty();
+        assertThat(Path.of("A/*").in(tree)).containsAll(subtree.values());
     }
 
     @Test
