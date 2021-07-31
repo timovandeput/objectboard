@@ -10,8 +10,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class PathTest {
-    private static final int VALUE = 42;
-    private static final String OTHER_VALUE = "Other";
+    private static final Object VALUE = 42;
+    private static final Object OTHER_VALUE = "Other";
 
     @Test
     void createsInstance() {
@@ -129,6 +129,22 @@ class PathTest {
         Path.of("A/B").set(tree, VALUE);
 
         assertThat(tree).isEqualTo(Map.of("A", Map.of("B", VALUE)));
+    }
+
+    @Test
+    void ignores_clearNonExistingPath() {
+        // Would throw if modified
+        final var tree = Map.of("A", VALUE);
+
+        Path.of("A/B/C").set(tree, null);
+    }
+
+    @Test
+    void ignores_clearNonExistingValue() {
+        // Would throw if modified
+        final var tree = Map.<String, Object>of();
+
+        Path.of("A").set(tree, null);
     }
 
     @Test

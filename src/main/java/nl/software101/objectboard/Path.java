@@ -97,12 +97,21 @@ public final class Path {
         }
         final var key = segments.get(0);
         if (segments.size() > 1) {
-            final var target = map.compute(key, (k, v) -> v instanceof Map ? v : new HashMap<>());
+            var target = map.get(key);
+            if (!(target instanceof Map)) {
+                if (value == null) {
+                    return;
+                }
+                target = new HashMap<>();
+                map.put(key, target);
+            }
             //noinspection unchecked
             set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
             return;
         }
-        map.put(key, value);
+        if (value != null || map.containsKey(key)) {
+            map.put(key, value);
+        }
     }
 
     @Override
