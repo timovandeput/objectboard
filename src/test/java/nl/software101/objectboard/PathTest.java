@@ -9,6 +9,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 class PathTest {
     private static final int VALUE = 42;
+    private static final String OTHER_VALUE = "Other";
 
     @Test
     void createsInstance() {
@@ -48,6 +49,18 @@ class PathTest {
     }
 
     @Test
+    void matchesGlobSubPath() {
+        assertThat(Path.of("**").matches(Path.of("A/B/C"))).isTrue();
+        assertThat(Path.of("**").matches(Path.of(""))).isTrue();
+        assertThat(Path.of("A/**").matches(Path.of("B"))).isFalse();
+        assertThat(Path.of("A/**").matches(Path.of("A"))).isTrue();
+        assertThat(Path.of("A/**").matches(Path.of("A/B/C"))).isTrue();
+        assertThat(Path.of("A/**/Z").matches(Path.of("A/B"))).isFalse();
+        assertThat(Path.of("A/**/Z").matches(Path.of("A/Z"))).isTrue();
+        assertThat(Path.of("A/**/Z").matches(Path.of("A/B/Y/Z"))).isTrue();
+    }
+
+    @Test
     void findsValue() {
         assertThat(new Path().in(VALUE)).contains(VALUE);
     }
@@ -57,19 +70,33 @@ class PathTest {
         final Object tree = Map.of("A", Map.of("A", "Nope", "B", VALUE));
 
         assertThat(Path.of("A/C").in(tree)).isEmpty();
-        assertThat(Path.of("").in(tree)).contains(tree);
+        assertThat(Path.of("").in(tree)).isEmpty();
         assertThat(Path.of("A/B").in(tree)).contains(VALUE);
     }
 
     @Test
     void findsWildcardPathsInTree() {
-        final Map<?, ?> subtree = Map.of("X", "Nope", "C", VALUE);
-        final Object tree = Map.of("A", subtree, "B", VALUE);
+        final Map<?, ?> subtree = Map.of("X", "Nope", "B", VALUE);
+        final Object tree = Map.of("A", subtree, "B", OTHER_VALUE);
 
-        assertThat(Path.of("*").in(tree)).containsExactly(subtree, VALUE);
-        assertThat(Path.of("*/C").in(tree)).contains(VALUE);
+        assertThat(Path.of("*/B").in(tree)).containsExactly(VALUE);
         assertThat(Path.of("*/Z").in(tree)).isEmpty();
         assertThat(Path.of("A/*").in(tree)).containsAll(subtree.values());
+        assertThat(Path.of("*").in(tree)).containsExactly(OTHER_VALUE);
+    }
+
+    @Test
+    void findsGlobPathsInTree() {
+        final Map<?, ?> subtree = Map.of("A", OTHER_VALUE, "B", VALUE);
+        final Object tree = Map.of("A", subtree, "B", VALUE);
+
+        assertThat(Path.of("**").in(tree)).containsExactly(tree);
+        assertThat(Path.of("**/A").in(tree)).isEmpty();
+        assertThat(Path.of("**/B").in(tree)).containsExactly(VALUE);
+        assertThat(Path.of("A/**").in(tree)).containsExactly(subtree);
+        assertThat(Path.of("A/**/B").in(tree)).containsExactly(VALUE);
+        assertThat(Path.of("A/**/**/B").in(tree)).containsExactly(VALUE);
+        assertThat(Path.of("B/**").in(tree)).containsExactly(VALUE);
     }
 
     @Test

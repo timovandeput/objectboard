@@ -8,6 +8,7 @@ import java.util.*;
 public final class Path {
     public static final Path EMPTY = new Path();
     private static final String WILDCARD = "*";
+    private static final String GLOB = "**";
 
     private final List<String> segments;
 
@@ -30,10 +31,15 @@ public final class Path {
         if (from.isEmpty() && to.isEmpty()) {
             return true;
         }
-        if (!from.isEmpty() && !to.isEmpty()) {
+        if (!from.isEmpty()) {
             final var key = from.get(0);
-            if (WILDCARD.equals(key) || key.equals(to.get(0))) {
+            if (!to.isEmpty() && (WILDCARD.equals(key) || key.equals(to.get(0)))) {
                 return matches(from.subList(1, from.size()), to.subList(1, to.size()));
+            }
+            if (GLOB.equals(key)) {
+                return matches(from.subList(1, from.size()), to)
+                        || (!to.isEmpty() && matches(from, to.subList(1, to.size())))
+                        || (!to.isEmpty() && matches(from.subList(1, from.size()), to.subList(1, to.size())));
             }
         }
         return false;
@@ -45,6 +51,9 @@ public final class Path {
 
     private Set<Object> in(List<String> segments, Object object) {
         if (segments.isEmpty()) {
+            return (object instanceof Map) ? Set.of() : Set.of(object);
+        }
+        if (segments.equals(List.of(GLOB))) {
             return Set.of(object);
         }
         if (object instanceof Map) {
@@ -53,8 +62,19 @@ public final class Path {
             if (WILDCARD.equals(segment)) {
                 final var values = new HashSet<>();
                 map.values().forEach(v -> {
-                    final var set = in(segments.subList(1, segments.size()), v);
-                    values.addAll(set);
+                    values.addAll(in(segments.subList(1, segments.size()), v));
+                });
+                return values;
+            }
+            if (GLOB.equals(segment)) {
+                final var values = new HashSet<>();
+                map.forEach((k, v) -> {
+                    String next = segments.get(1);
+                    if (k.equals(next) || WILDCARD.equals(next) || GLOB.equals(next)) {
+                        values.addAll(in(segments.subList(1, segments.size()), map));
+                    } else {
+                        values.addAll(in(segments, v));
+                    }
                 });
                 return values;
             }
