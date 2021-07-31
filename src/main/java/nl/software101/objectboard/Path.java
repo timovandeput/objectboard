@@ -1,13 +1,13 @@
 package nl.software101.objectboard;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 /**
  * Node tree path specification.
  */
 public final class Path {
+    public static final Path EMPTY = new Path();
+
     private final List<String> segments;
 
     Path(String... segments) {
@@ -22,17 +22,25 @@ public final class Path {
     }
 
     public boolean matches(Path other) {
-        return matches(segments, other.segments);
+        return Objects.deepEquals(segments, other.segments);
     }
 
-    private boolean matches(List<String> from, List<String> to) {
-        if (from.isEmpty()) {
-            return true;
+    public Optional<Object> in(Object object) {
+        return in(segments, object);
+    }
+
+    private Optional<Object> in(List<String> segments, Object object) {
+        if (segments.isEmpty()) {
+            return Optional.of(object);
         }
-        if (!to.isEmpty()) {
-            return from.get(0).equals(to.get(0)) && matches(from.subList(1, from.size()), to.subList(1, to.size()));
+        if (object instanceof Map) {
+            final var segment = segments.get(0);
+            final var value = ((Map<?, ?>) object).get(segment);
+            if (value != null) {
+                return in(segments.subList(1, segments.size()), value);
+            }
         }
-        return false;
+        return Optional.empty();
     }
 
     @Override
@@ -52,4 +60,5 @@ public final class Path {
     public String toString() {
         return String.join("/", segments);
     }
+
 }
