@@ -24,8 +24,10 @@ public class ObjectBoard {
      * @param value new value
      */
     public synchronized void set(Path path, Object value) {
-        path.set(model, value);
-        forMatching(path, listener -> listener.onSet(path, value));
+        final var modified = path.set(model, value);
+        if (modified) {
+            forMatching(path, listener -> listener.onSet(path, value));
+        }
     }
 
     private void forMatching(Path path, Consumer<BoardListener> subscription) {

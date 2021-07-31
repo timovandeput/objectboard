@@ -108,7 +108,8 @@ public final class Path {
             //noinspection unchecked
             return set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
         }
-        if (value == null && !map.containsKey(key)) {
+        final var current = map.get(key);
+        if (Objects.deepEquals(value, current)) {
             return false;
         }
         map.put(key, value);

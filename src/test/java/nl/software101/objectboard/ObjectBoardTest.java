@@ -27,7 +27,15 @@ class ObjectBoardTest {
         }
 
         @Test
-        void ignoresIfNothingChanged() {
+        void ignores_NothingModified() {
+            board.set(PATH, VALUE);
+            board.set(PATH, VALUE);
+
+            verify(listener, times(1)).onSet(any(), any());
+        }
+
+        @Test
+        void ignores_NothingCleared() {
             board.unset(PATH);
 
             verify(listener, never()).onUnset(any());
