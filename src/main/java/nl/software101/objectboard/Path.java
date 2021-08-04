@@ -22,7 +22,11 @@ public final class Path {
      * @param segments
      */
     Path(String... segments) {
-        this.segments = Arrays.asList(segments);
+        this(Arrays.asList(segments));
+    }
+
+    private Path(List<String> segments) {
+        this.segments = segments;
     }
 
     /**
@@ -30,10 +34,14 @@ public final class Path {
      * @return path from a specification using <code>/</code> as separator
      */
     public static Path of(String path) {
+        return new Path(segments(path));
+    }
+
+    private static List<String> segments(String path) {
         if (path.isBlank()) {
-            return new Path();
+            return List.of();
         }
-        return new Path(path.split("/"));
+        return Arrays.asList(path.split("/"));
     }
 
     /**
@@ -68,9 +76,35 @@ public final class Path {
      * @return map of paths with the value at this path
      */
     public Map<String, Object> in(Object model) {
+        return in("", model);
+    }
+
+    /**
+     * Finds all data in the prefix and model that matching this path.
+     *
+     * @param prefix path to the model
+     * @param model
+     * @return map of paths with the value at this path
+     */
+    public Map<String, Object> in(String prefix, Object model) {
         final var map = new HashMap<String, Object>();
-        in(model, "", segments, map::put);
+        in(model, "", segments, segments(prefix), map::put);
         return map;
+    }
+
+    private void in(Object model, String prefix, List<String> from, List<String> to, BiConsumer<String, Object> found) {
+        if (from.isEmpty() || to.isEmpty()) {
+            in(model, prefix, from, found);
+        } else {
+            final var key = from.get(0);
+            if (WILDCARD.equals(key) || key.equals(to.get(0))) {
+                in(model, combine(prefix, to.get(0)), from.subList(1, from.size()), to.subList(1, to.size()), found);
+            } else if (GLOB.equals(key)) {
+                in(model, prefix, from.subList(1, from.size()), to, found);
+                in(model, combine(prefix, to.get(0)), from, to.subList(1, to.size()), found);
+                in(model, combine(prefix, to.get(0)), from.subList(1, from.size()), to.subList(1, to.size()), found);
+            }
+        }
     }
 
     private void in(Object model, String prefix, List<String> segments, BiConsumer<String, Object> found) {

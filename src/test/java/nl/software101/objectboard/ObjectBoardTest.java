@@ -50,6 +50,10 @@ class ObjectBoardTest {
             verify(listener, times(1)).onSet(any(), any());
         }
 
+        @Test
+        void notifiesNestedValueUpdate() {
+            board.set(PATH, VALUE);
+        }
 
         @Test
         void notifiesValueRemove() {

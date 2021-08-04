@@ -102,6 +102,19 @@ class PathTest {
     }
 
     @Test
+    void findsPathInPrefixedTree() {
+        final Object tree = Map.of("A", Map.of("B", VALUE));
+
+        assertThat(Path.of("1/A/B").in("1/2", tree)).isEmpty();
+        assertThat(Path.of("1/2/A/B/C").in("1/2", tree)).isEmpty();
+        assertThat(Path.of("1/*/*/C").in("1/2", tree)).isEmpty();
+        assertThat(Path.of("1/**/C").in("1/2", tree)).isEmpty();
+        assertThat(Path.of("1/2/A/B").in("1/2", tree)).isEqualTo(Map.of("1/2/A/B", VALUE));
+        assertThat(Path.of("1/*/*/B").in("1/2", tree)).isEqualTo(Map.of("1/2/A/B", VALUE));
+        assertThat(Path.of("1/**/B").in("1/2", tree)).isEqualTo(Map.of("1/2/A/B", VALUE));
+    }
+
+    @Test
     void throws_addWithoutPath() {
         assertThatThrownBy(() -> Path.of("").set(Map.of(), VALUE))
                 .isInstanceOf(ObjectBoardException.class)
