@@ -2,21 +2,33 @@ package nl.software101.objectboard;
 
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.function.BiConsumer;
 
 /**
  * Node tree path specification.
+ * <p>
+ * Supports wildcard segments encoded as <code>*</code>.
+ * Supports segment globs encoded as <code>**</code>.
  */
 public final class Path {
-    public static final Path EMPTY = new Path();
     private static final String WILDCARD = "*";
     private static final String GLOB = "**";
 
     private final List<String> segments;
 
+    /**
+     * Constructs a path from named segments.
+     *
+     * @param segments
+     */
     Path(String... segments) {
         this.segments = Arrays.asList(segments);
     }
 
+    /**
+     * @param path specification
+     * @return path from a specification using <code>/</code> as separator
+     */
     public static Path of(String path) {
         if (path.isBlank()) {
             return new Path();
@@ -24,6 +36,9 @@ public final class Path {
         return new Path(path.split("/"));
     }
 
+    /**
+     * @return true if this path is a sub-path o the other path, taking wildcards and globs into account
+     */
     public boolean matches(Path other) {
         return matches(segments, other.segments);
     }
@@ -46,45 +61,43 @@ public final class Path {
         return false;
     }
 
-    public Set<Object> in(Object object) {
-        return in(segments, object);
+    /**
+     * Finds all data in the model matching this path.
+     *
+     * @param model
+     * @return map of paths with the value at this path
+     */
+    public Map<String, Object> in(Object model) {
+        final var map = new HashMap<String, Object>();
+        in(model, "", segments, map::put);
+        return map;
     }
 
-    private Set<Object> in(List<String> segments, Object object) {
-        if (segments.isEmpty()) {
-            return (object instanceof Map) ? Set.of() : Set.of(object);
-        }
-        if (segments.equals(List.of(GLOB))) {
-            return Set.of(object);
-        }
-        if (object instanceof Map) {
-            final var map = (Map<?, ?>) object;
+    private void in(Object model, String prefix, List<String> segments, BiConsumer<String, Object> found) {
+        if (segments.isEmpty() || segments.equals(List.of(GLOB))) {
+            found.accept(prefix, model);
+        } else if (model instanceof Map) {
+            final var map = (Map<?, ?>) model;
             final var segment = segments.get(0);
             if (WILDCARD.equals(segment)) {
-                final var values = new HashSet<>();
-                map.values().forEach(v -> {
-                    values.addAll(in(segments.subList(1, segments.size()), v));
-                });
-                return values;
-            }
-            if (GLOB.equals(segment)) {
-                final var values = new HashSet<>();
-                map.forEach((k, v) -> {
-                    String next = segments.get(1);
-                    if (k.equals(next) || WILDCARD.equals(next) || GLOB.equals(next)) {
-                        values.addAll(in(segments.subList(1, segments.size()), map));
-                    } else {
-                        values.addAll(in(segments, v));
-                    }
-                });
-                return values;
-            }
-            final var value = map.get(segment);
-            if (value != null) {
-                return in(segments.subList(1, segments.size()), value);
+                map.forEach((k, v) -> in(v, combine(prefix, k), segments.subList(1, segments.size()), found));
+            } else if (GLOB.equals(segment)) {
+                in(map, prefix, segments.subList(1, segments.size()), found);
+                final var next = segments.get(1);
+                map.entrySet().stream()
+                        .filter(e -> !e.getKey().equals(next))
+                        .forEach(e -> in(e.getValue(), combine(prefix, e.getKey()), segments.subList(1, segments.size()), found));
+            } else {
+                final var value = map.get(segment);
+                if (value != null) {
+                    in(value, combine(prefix, segments.get(0)), segments.subList(1, segments.size()), found);
+                }
             }
         }
-        return Set.of();
+    }
+
+    private String combine(String path, Object segment) {
+        return path.isEmpty() ? segment.toString() : path + '/' + segment;
     }
 
     public boolean set(Map<String, Object> map, @Nullable Object value) {

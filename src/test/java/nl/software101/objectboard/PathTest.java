@@ -64,27 +64,27 @@ class PathTest {
 
     @Test
     void findsValue() {
-        assertThat(new Path().in(VALUE)).contains(VALUE);
+        assertThat(new Path().in(VALUE)).isEqualTo(Map.of("", VALUE));
     }
 
     @Test
     void findsPathInTree() {
-        final Object tree = Map.of("A", Map.of("A", "Nope", "B", VALUE));
+        final Object tree = Map.of("A", Map.of("A", OTHER_VALUE, "B", VALUE));
 
         assertThat(Path.of("A/C").in(tree)).isEmpty();
-        assertThat(Path.of("").in(tree)).isEmpty();
-        assertThat(Path.of("A/B").in(tree)).contains(VALUE);
+        assertThat(Path.of("").in(tree)).isEqualTo(Map.of("", tree));
+        assertThat(Path.of("A/B").in(tree)).isEqualTo(Map.of("A/B", VALUE));
     }
 
     @Test
     void findsWildcardPathsInTree() {
-        final Map<?, ?> subtree = Map.of("X", "Nope", "B", VALUE);
+        final Map<?, ?> subtree = Map.of("X", OTHER_VALUE, "B", VALUE);
         final Object tree = Map.of("A", subtree, "B", OTHER_VALUE);
 
-        assertThat(Path.of("*/B").in(tree)).containsExactly(VALUE);
+        assertThat(Path.of("*/B").in(tree)).isEqualTo(Map.of("A/B", VALUE));
         assertThat(Path.of("*/Z").in(tree)).isEmpty();
-        assertThat(Path.of("A/*").in(tree)).containsAll(subtree.values());
-        assertThat(Path.of("*").in(tree)).containsExactly(OTHER_VALUE);
+        assertThat(Path.of("A/*").in(tree)).isEqualTo(Map.of("A/B", VALUE, "A/X", OTHER_VALUE));
+        assertThat(Path.of("*").in(tree)).isEqualTo(Map.of("A", subtree, "B", OTHER_VALUE));
     }
 
     @Test
@@ -92,13 +92,13 @@ class PathTest {
         final Map<?, ?> subtree = Map.of("A", OTHER_VALUE, "B", VALUE);
         final Object tree = Map.of("A", subtree, "B", VALUE);
 
-        assertThat(Path.of("**").in(tree)).containsExactly(tree);
-        assertThat(Path.of("**/A").in(tree)).isEmpty();
-        assertThat(Path.of("**/B").in(tree)).containsExactly(VALUE);
-        assertThat(Path.of("A/**").in(tree)).containsExactly(subtree);
-        assertThat(Path.of("A/**/B").in(tree)).containsExactly(VALUE);
-        assertThat(Path.of("A/**/**/B").in(tree)).containsExactly(VALUE);
-        assertThat(Path.of("B/**").in(tree)).containsExactly(VALUE);
+        assertThat(Path.of("**").in(tree)).isEqualTo(Map.of("", tree));
+        assertThat(Path.of("**/A").in(tree)).isEqualTo(Map.of("A", subtree));
+        assertThat(Path.of("**/B").in(tree)).isEqualTo(Map.of("B", VALUE, "A/B", VALUE));
+        assertThat(Path.of("A/**").in(tree)).isEqualTo(Map.of("A", subtree));
+        assertThat(Path.of("A/**/B").in(tree)).isEqualTo(Map.of("A/B", VALUE));
+        assertThat(Path.of("A/**/**/B").in(tree)).isEqualTo(Map.of("A/B", VALUE));
+        assertThat(Path.of("B/**").in(tree)).isEqualTo(Map.of("B", VALUE));
     }
 
     @Test

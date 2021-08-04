@@ -18,7 +18,7 @@ public class ObjectBoard {
 
     /**
      * Sets a value in the tree.
-     * Subscribed listeners are notified of the change.
+     * Subscribed listeners are notified of the new value.
      *
      * @param path  location to update
      * @param value new value
@@ -40,7 +40,7 @@ public class ObjectBoard {
 
     /**
      * Clears a value in the tree.
-     * Subscribed listeners are notified of the change
+     * Subscribed listeners are notified of the cleared value.
      *
      * @param path location to clear
      */
@@ -61,7 +61,7 @@ public class ObjectBoard {
     public synchronized void subscribe(Path path, BoardListener listener) {
         final var subscription = new BoardSubscription(path);
         listeners.put(subscription, listener);
-        path.in(model).forEach(value -> listener.onSet(path, value));
+        path.in(model).forEach((p, value) -> listener.onSet(Path.of(p), value));
     }
 
     /**

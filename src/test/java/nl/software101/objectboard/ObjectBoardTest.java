@@ -8,7 +8,8 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 class ObjectBoardTest {
-    private static final Path PATH = Path.of("A");
+    private static final Path PATH = Path.of("A/B");
+    private static final Path SUBSCRIPTION = Path.of("A/*");
     private static final int VALUE = 42;
 
     private final ObjectBoard board = new ObjectBoard();
@@ -19,43 +20,50 @@ class ObjectBoardTest {
 
         @BeforeEach
         void setUp() {
-            board.subscribe(PATH, listener);
-        }
-
-        @Test
-        void notifiesBoardChanges() {
-            board.set(PATH, VALUE);
-            board.unset(PATH);
-
-            verify(listener).onSet(PATH, VALUE);
-            verify(listener).onUnset(PATH);
-        }
-
-        @Test
-        void ignores_NothingModified() {
-            board.set(PATH, VALUE);
-            board.set(PATH, VALUE);
-
-            verify(listener, times(1)).onSet(any(), any());
-        }
-
-        @Test
-        void ignores_NothingCleared() {
-            board.unset(PATH);
-
-            verify(listener, never()).onUnset(any());
+            board.subscribe(SUBSCRIPTION, listener);
         }
 
         @Test
         void synchronizesOnSubscribe() {
             board.unsubscribe(listener);
             board.set(PATH, VALUE);
-            board.set(Path.of("other"), "Other value");
+            board.set(Path.of("Other path"), "Other value");
 
-            board.subscribe(PATH, listener);
+            board.subscribe(SUBSCRIPTION, listener);
 
             verify(listener).onSet(PATH, VALUE);
             verify(listener, times(1)).onSet(any(), any());
+        }
+
+        @Test
+        void notifiesValueUpdate() {
+            board.set(PATH, VALUE);
+
+            verify(listener).onSet(PATH, VALUE);
+        }
+
+        @Test
+        void ignoresOverwriteOfEqualValue() {
+            board.set(PATH, VALUE);
+            board.set(PATH, VALUE);
+
+            verify(listener, times(1)).onSet(any(), any());
+        }
+
+
+        @Test
+        void notifiesValueRemove() {
+            board.set(PATH, VALUE);
+            board.unset(PATH);
+
+            verify(listener).onUnset(PATH);
+        }
+
+        @Test
+        void ignoresRemovingNonExistingValue() {
+            board.unset(PATH);
+
+            verify(listener, never()).onUnset(any());
         }
 
         @Test
@@ -81,8 +89,8 @@ class ObjectBoardTest {
 
         @Test
         void notifiesEachListenerOnce() {
-            board.subscribe(PATH, listener);
-            board.subscribe(PATH, listener);
+            board.subscribe(SUBSCRIPTION, listener);
+            board.subscribe(SUBSCRIPTION, listener);
 
             board.set(PATH, VALUE);
 
