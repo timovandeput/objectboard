@@ -1,5 +1,6 @@
 package nl.software101.objectboard;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -7,7 +8,8 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 class ObjectBoardTest {
-    private static final String PATH = "A";
+    private static final String PATH = "A/B";
+    private static final String SUBSCRIPTION = "A/*";
     private static final int VALUE = 42;
 
     private final ObjectBoard board = new ObjectBoard();
@@ -15,49 +17,73 @@ class ObjectBoardTest {
     @Nested
     class Notifications {
         private final BoardListener listener = mock(BoardListener.class);
-        private final BoardSubscription subscription = board.subscribe(PATH, listener);
 
-        @Test
-        void notifiesBoardChanges() {
-            board.set(PATH, VALUE);
-            board.unset(PATH);
-
-            verify(listener).onSet(PATH, VALUE);
-            verify(listener).onUnset(PATH, VALUE);
-        }
-
-        @Test
-        void ignoresIfNothingChanged() {
-            board.unset(PATH);
-
-            verify(listener, never()).onUnset(any(), any());
+        @BeforeEach
+        void setUp() {
+            board.subscribe(SUBSCRIPTION, listener);
         }
 
         @Test
         void synchronizesOnSubscribe() {
             board.unsubscribe(listener);
             board.set(PATH, VALUE);
-            board.set("other", "Other value");
+            board.set("Other path", "Other value");
 
-            board.subscribe(PATH, listener);
+            board.subscribe(SUBSCRIPTION, listener);
 
             verify(listener).onSet(PATH, VALUE);
             verify(listener, times(1)).onSet(any(), any());
         }
 
         @Test
-        void unsubscribes() throws Exception {
-            subscription.close();
+        void notifiesValueUpdate() {
+            board.set(PATH, VALUE);
+
+            verify(listener).onSet(PATH, VALUE);
+        }
+
+        @Test
+        void ignoresOverwriteOfEqualValue() {
+            board.set(PATH, VALUE);
+            board.set(PATH, VALUE);
+
+            verify(listener, times(1)).onSet(any(), any());
+        }
+
+        @Test
+        void notifiesNestedValueUpdate() {
+            board.set(PATH, VALUE);
+        }
+
+        @Test
+        void notifiesValueRemove() {
+            board.set(PATH, VALUE);
+            board.unset(PATH);
+
+            verify(listener).onUnset(PATH);
+        }
+
+        @Test
+        void ignoresRemovingNonExistingValue() {
+            board.unset(PATH);
+
+            verify(listener, never()).onUnset(any());
+        }
+
+        @Test
+        void unsubscribes() {
+            board.unsubscribe(listener);
 
             board.set(PATH, VALUE);
             board.unset(PATH);
             verify(listener, never()).onSet(any(), any());
-            verify(listener, never()).onUnset(any(), any());
+            verify(listener, never()).onUnset(any());
         }
 
         @Test
         void unsubscribesAllSubscriptionsForListener() {
-            final var subscription = board.subscribe("", listener);
+            board.subscribe("**", listener);
+            Mockito.reset(listener);
 
             board.unsubscribe(listener);
 
@@ -67,8 +93,8 @@ class ObjectBoardTest {
 
         @Test
         void notifiesEachListenerOnce() {
-            board.subscribe(PATH, listener);
-            board.subscribe(PATH, listener);
+            board.subscribe(SUBSCRIPTION, listener);
+            board.subscribe(SUBSCRIPTION, listener);
 
             board.set(PATH, VALUE);
 
@@ -91,7 +117,7 @@ class ObjectBoardTest {
             thread1.join();
             thread2.join();
             inOrder.verify(listener).onSet(PATH, VALUE);
-            inOrder.verify(listener).onUnset(PATH, VALUE);
+            inOrder.verify(listener).onUnset(PATH);
         }
     }
 }

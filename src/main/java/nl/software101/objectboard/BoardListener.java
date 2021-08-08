@@ -5,7 +5,7 @@ package nl.software101.objectboard;
  */
 public interface BoardListener {
     /**
-     * Notifies a value has been set.
+     * Notifies that a value has been set.
      *
      * @param path  path of the value
      * @param value the added or updated value
@@ -13,10 +13,9 @@ public interface BoardListener {
     void onSet(String path, Object value);
 
     /**
-     * Notifies a value has been cleared.
+     * Notifies that a value has been cleared.
      *
-     * @param path  path of the value
-     * @param value the prior value
+     * @param path path of the value
      */
-    void onUnset(String path, Object value);
+    void onUnset(String path);
 }
