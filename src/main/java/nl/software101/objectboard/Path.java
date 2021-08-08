@@ -11,6 +11,7 @@ import java.util.function.BiConsumer;
  * Supports segment globs encoded as <code>**</code>.
  */
 public final class Path {
+    private static final String SEPARATOR = "/";
     private static final String WILDCARD = "*";
     private static final String GLOB = "**";
 
@@ -41,7 +42,7 @@ public final class Path {
         if (path.isBlank()) {
             return List.of();
         }
-        return Arrays.asList(path.split("/"));
+        return Arrays.asList(path.split(SEPARATOR));
     }
 
     /**
@@ -56,14 +57,14 @@ public final class Path {
             return true;
         }
         if (!from.isEmpty()) {
-            final var key = from.get(0);
-            if (!to.isEmpty() && (WILDCARD.equals(key) || key.equals(to.get(0)))) {
-                return matches(from.subList(1, from.size()), to.subList(1, to.size()));
+            final var key = head(from);
+            if (!to.isEmpty() && (WILDCARD.equals(key) || key.equals(head(to)))) {
+                return matches(tail(from), tail(to));
             }
             if (GLOB.equals(key)) {
-                return matches(from.subList(1, from.size()), to)
-                        || (!to.isEmpty() && matches(from, to.subList(1, to.size())))
-                        || (!to.isEmpty() && matches(from.subList(1, from.size()), to.subList(1, to.size())));
+                return matches(tail(from), to)
+                        || (!to.isEmpty() && matches(from, tail(to)))
+                        || (!to.isEmpty() && matches(tail(from), tail(to)));
             }
         }
         return false;
@@ -72,7 +73,7 @@ public final class Path {
     /**
      * Finds all data in the model matching this path.
      *
-     * @param model
+     * @param model (hierarchical) data structure
      * @return map of paths with the value at this path
      */
     public Map<String, Object> in(Object model) {
@@ -80,58 +81,66 @@ public final class Path {
     }
 
     /**
-     * Finds all data in the prefix and model that matching this path.
+     * Finds all data in the prefixed model matching this path.
      *
      * @param prefix path to the model
-     * @param model
+     * @param model  (hierarchical) data structure
      * @return map of paths with the value at this path
      */
     public Map<String, Object> in(String prefix, Object model) {
         final var map = new HashMap<String, Object>();
-        in(model, "", segments, segments(prefix), map::put);
+        in("", model, segments, segments(prefix), map::put);
         return map;
     }
 
-    private void in(Object model, String prefix, List<String> from, List<String> to, BiConsumer<String, Object> found) {
+    private void in(String prefix, Object model, List<String> from, List<String> to, BiConsumer<String, Object> found) {
         if (from.isEmpty() || to.isEmpty()) {
-            in(model, prefix, from, found);
+            in(prefix, model, from, found);
         } else {
-            final var key = from.get(0);
-            if (WILDCARD.equals(key) || key.equals(to.get(0))) {
-                in(model, combine(prefix, to.get(0)), from.subList(1, from.size()), to.subList(1, to.size()), found);
+            final var key = head(from);
+            if (WILDCARD.equals(key) || key.equals(head(to))) {
+                in(combine(prefix, head(to)), model, tail(from), tail(to), found);
             } else if (GLOB.equals(key)) {
-                in(model, prefix, from.subList(1, from.size()), to, found);
-                in(model, combine(prefix, to.get(0)), from, to.subList(1, to.size()), found);
-                in(model, combine(prefix, to.get(0)), from.subList(1, from.size()), to.subList(1, to.size()), found);
+                in(prefix, model, tail(from), to, found);
+                in(combine(prefix, head(to)), model, from, tail(to), found);
+                in(combine(prefix, head(to)), model, tail(from), tail(to), found);
             }
         }
     }
 
-    private void in(Object model, String prefix, List<String> segments, BiConsumer<String, Object> found) {
+    private void in(String prefix, Object model, List<String> segments, BiConsumer<String, Object> found) {
         if (segments.isEmpty() || segments.equals(List.of(GLOB))) {
             found.accept(prefix, model);
         } else if (model instanceof Map) {
             final var map = (Map<?, ?>) model;
-            final var segment = segments.get(0);
-            if (WILDCARD.equals(segment)) {
-                map.forEach((k, v) -> in(v, combine(prefix, k), segments.subList(1, segments.size()), found));
-            } else if (GLOB.equals(segment)) {
-                in(map, prefix, segments.subList(1, segments.size()), found);
+            final var head = head(segments);
+            if (head.equals(WILDCARD)) {
+                map.forEach((k, v) -> in(combine(prefix, k), v, tail(segments), found));
+            } else if (head.equals(GLOB)) {
+                in(prefix, map, tail(segments), found);
                 final var next = segments.get(1);
                 map.entrySet().stream()
                         .filter(e -> !e.getKey().equals(next))
-                        .forEach(e -> in(e.getValue(), combine(prefix, e.getKey()), segments.subList(1, segments.size()), found));
+                        .forEach(e -> in(combine(prefix, e.getKey()), e.getValue(), tail(segments), found));
             } else {
-                final var value = map.get(segment);
+                final var value = map.get(head);
                 if (value != null) {
-                    in(value, combine(prefix, segments.get(0)), segments.subList(1, segments.size()), found);
+                    in(combine(prefix, head(segments)), value, tail(segments), found);
                 }
             }
         }
     }
 
     private String combine(String path, Object segment) {
-        return path.isEmpty() ? segment.toString() : path + '/' + segment;
+        return path.isEmpty() ? segment.toString() : path + SEPARATOR + segment;
+    }
+
+    private String head(List<String> list) {
+        return list.get(0);
+    }
+
+    private List<String> tail(List<String> list) {
+        return list.subList(1, list.size());
     }
 
     public boolean set(Map<String, Object> map, @Nullable Object value) {
@@ -142,7 +151,7 @@ public final class Path {
         if (segments.isEmpty()) {
             throw new ObjectBoardException("Cannot update an empty path");
         }
-        final var key = segments.get(0);
+        final var key = head(segments);
         if (segments.size() > 1) {
             var target = map.get(key);
             if (!(target instanceof Map)) {
@@ -153,7 +162,7 @@ public final class Path {
                 map.put(key, target);
             }
             //noinspection unchecked
-            return set(segments.subList(1, segments.size()), (Map<String, Object>) target, value);
+            return set(tail(segments), (Map<String, Object>) target, value);
         }
         final var current = map.get(key);
         if (Objects.deepEquals(value, current)) {
@@ -178,6 +187,6 @@ public final class Path {
 
     @Override
     public String toString() {
-        return String.join("/", segments);
+        return String.join(SEPARATOR, segments);
     }
 }

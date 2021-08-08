@@ -8,8 +8,8 @@ import org.mockito.Mockito;
 import static org.mockito.Mockito.*;
 
 class ObjectBoardTest {
-    private static final Path PATH = Path.of("A/B");
-    private static final Path SUBSCRIPTION = Path.of("A/*");
+    private static final String PATH = "A/B";
+    private static final String SUBSCRIPTION = "A/*";
     private static final int VALUE = 42;
 
     private final ObjectBoard board = new ObjectBoard();
@@ -27,7 +27,7 @@ class ObjectBoardTest {
         void synchronizesOnSubscribe() {
             board.unsubscribe(listener);
             board.set(PATH, VALUE);
-            board.set(Path.of("Other path"), "Other value");
+            board.set("Other path", "Other value");
 
             board.subscribe(SUBSCRIPTION, listener);
 
@@ -82,7 +82,7 @@ class ObjectBoardTest {
 
         @Test
         void unsubscribesAllSubscriptionsForListener() {
-            board.subscribe(Path.of("**"), listener);
+            board.subscribe("**", listener);
             Mockito.reset(listener);
 
             board.unsubscribe(listener);

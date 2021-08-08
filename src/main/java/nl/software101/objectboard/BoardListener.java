@@ -10,12 +10,12 @@ public interface BoardListener {
      * @param path  path of the value
      * @param value the added or updated value
      */
-    void onSet(Path path, Object value);
+    void onSet(String path, Object value);
 
     /**
      * Notifies that a value has been cleared.
      *
      * @param path path of the value
      */
-    void onUnset(Path path);
+    void onUnset(String path);
 }

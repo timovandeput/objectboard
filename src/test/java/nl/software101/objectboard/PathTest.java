@@ -63,7 +63,7 @@ class PathTest {
     }
 
     @Test
-    void findsValue() {
+    void findsValueAtEmptyPath() {
         assertThat(new Path().in(VALUE)).isEqualTo(Map.of("", VALUE));
     }
 
@@ -116,7 +116,7 @@ class PathTest {
 
     @Test
     void throws_addWithoutPath() {
-        assertThatThrownBy(() -> Path.of("").set(Map.of(), VALUE))
+        assertThatThrownBy(() -> new Path().set(Map.of(), VALUE))
                 .isInstanceOf(ObjectBoardException.class)
                 .hasMessageContaining("empty path");
     }
@@ -135,7 +135,7 @@ class PathTest {
     }
 
     @Test
-    void createsNewTreeNode() {
+    void addsValueByExtendingTree() {
         final var tree = new HashMap<String, Object>();
         tree.put("A", VALUE);
 

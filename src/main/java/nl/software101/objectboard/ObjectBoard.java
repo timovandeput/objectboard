@@ -23,10 +23,11 @@ public class ObjectBoard {
      * @param path  location to update
      * @param value new value
      */
-    public synchronized void set(Path path, Object value) {
-        final var modified = path.set(model, value);
+    public synchronized void set(String path, Object value) {
+        final var location = Path.of(path);
+        final var modified = location.set(model, value);
         if (modified) {
-            forMatching(path, listener -> listener.onSet(path, value));
+            forMatching(location, listener -> listener.onSet(path, value));
         }
     }
 
@@ -44,10 +45,11 @@ public class ObjectBoard {
      *
      * @param path location to clear
      */
-    public synchronized void unset(Path path) {
-        final var modified = path.set(model, null);
+    public synchronized void unset(String path) {
+        final var location = Path.of(path);
+        final var modified = location.set(model, null);
         if (modified) {
-            forMatching(path, listener -> listener.onUnset(path));
+            forMatching(location, listener -> listener.onUnset(path));
         }
     }
 
@@ -58,10 +60,11 @@ public class ObjectBoard {
      * @param path     root location to subscribe
      * @param listener callback interface for notifications
      */
-    public synchronized void subscribe(Path path, BoardListener listener) {
-        final var subscription = new BoardSubscription(path);
+    public synchronized void subscribe(String path, BoardListener listener) {
+        final var location = Path.of(path);
+        final var subscription = new BoardSubscription(location);
         listeners.put(subscription, listener);
-        path.in(model).forEach((p, value) -> listener.onSet(Path.of(p), value));
+        location.in(model).forEach(listener::onSet);
     }
 
     /**
